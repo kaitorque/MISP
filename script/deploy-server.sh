@@ -221,6 +221,72 @@ configure_misp_modules_settings() {
     done
 }
 
+fetch_admin_api_key() {
+    local settings="/root/misp_settings.txt"
+    local key=""
+
+    if [[ -f "$settings" ]]; then
+        key="$(grep -E '^- Admin API key:' "$settings" | sed 's/^- Admin API key: //' | tr -d '[:space:]')"
+    fi
+
+    if [[ ${#key} -ne 40 ]]; then
+        echo "==> Could not read API key from ${settings}; generating via cake..."
+        local out
+        out="$(sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" User change_authkey admin@admin.test 2>&1)" || true
+        key="$(echo "$out" | grep -oE '[A-Za-z0-9]{40}' | tail -n1)"
+    fi
+
+    if [[ ${#key} -ne 40 ]]; then
+        echo "WARN: Admin API key not available. See /root/misp_settings.txt or MISP UI → Auth keys." >&2
+        return 1
+    fi
+    echo "$key"
+}
+
+write_automation_env() {
+    local api_key="$1"
+    local env_file="/root/misp-automation.env"
+    local insecure="false"
+
+    if [[ -z "${PATH_TO_SSL_CERT}" ]]; then
+        insecure="true"
+    fi
+
+    cat > "$env_file" <<ENV
+# Source this file for PyMISP / misp-import (mode 600, root only)
+#   set -a && source ${env_file} && set +a
+MISP_URL=${MISP_BASEURL}
+MISP_KEY=${api_key}
+MISP_INSECURE=${insecure}
+ENV
+    chmod 600 "$env_file"
+    echo "$env_file"
+}
+
+print_import_credentials() {
+    local api_key="$1"
+    local env_file="$2"
+
+    echo
+    echo "============================================================"
+    echo " API key for import / automation (PyMISP, misp-import)"
+    echo "============================================================"
+    echo "  MISP_URL=${MISP_BASEURL}"
+    echo "  MISP_KEY=${api_key}"
+    if [[ -z "${PATH_TO_SSL_CERT}" ]]; then
+        echo "  MISP_INSECURE=true    # self-signed TLS on this install"
+    fi
+    echo
+    echo "  Saved to: ${env_file}"
+    echo "    source ${env_file}"
+    echo
+    echo "  Detached import example:"
+    echo "    set -a && source ${env_file} && set +a"
+    echo "    nohup python3 /path/to/import_misp.py --source ./misp_export \\"
+    echo "      > /var/log/misp-import.log 2>&1 &"
+    echo "============================================================"
+}
+
 write_client_checklist() {
     local file="/root/misp-client-deploy-checklist.txt"
     local modules_line="- [ ] Install MISP-modules: docs/generic/misp-modules-debian.md"
@@ -240,10 +306,11 @@ write_client_checklist() {
 - [x] Python venv + GPG key for the instance
 ${modules_line}
 
-## Credentials (also in /root/misp_settings.txt after install)
+## Credentials
 - URL:          ${MISP_BASEURL}
 - Admin user:   admin@admin.test
-- Admin pass:   (see /root/misp_settings.txt)
+- Admin pass:   /root/misp_settings.txt
+- API import:   /root/misp-automation.env  (MISP_URL, MISP_KEY, MISP_INSECURE)
 
 ## Operator follow-up (recommended)
 - [ ] Log in and change admin@admin.test email/password if needed
@@ -535,8 +602,14 @@ if [[ "$INSTALL_MODULES" == true ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Post-install
+# Post-install: API key for detached import scripts
 # ---------------------------------------------------------------------------
+ADMIN_API_KEY=""
+AUTOMATION_ENV=""
+if ADMIN_API_KEY="$(fetch_admin_api_key)"; then
+    AUTOMATION_ENV="$(write_automation_env "$ADMIN_API_KEY")"
+fi
+
 CHECKLIST_FILE="$(write_client_checklist)"
 
 echo
@@ -545,6 +618,9 @@ echo " MISP deployment complete."
 echo "  URL:        ${MISP_BASEURL}"
 echo "  Admin:      admin@admin.test"
 echo "  Secrets:    /root/misp_settings.txt"
+if [[ -n "$AUTOMATION_ENV" ]]; then
+    echo "  Import env: ${AUTOMATION_ENV}"
+fi
 echo "  Checklist:  ${CHECKLIST_FILE}"
 echo "  Install log: /var/log/misp_install.log"
 if [[ "$MODULES_INSTALLED" == true ]]; then
@@ -552,6 +628,10 @@ if [[ "$MODULES_INSTALLED" == true ]]; then
     echo "  Modules log: /var/log/misp_modules_install.log"
 fi
 echo "============================================================"
+
+if [[ -n "$ADMIN_API_KEY" && -n "$AUTOMATION_ENV" ]]; then
+    print_import_credentials "$ADMIN_API_KEY" "$AUTOMATION_ENV"
+fi
 
 if [[ "$INSTALL_MODULES" != true ]]; then
     echo
