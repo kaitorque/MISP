@@ -3,8 +3,7 @@
 # MISP 2.5 bare-metal deployment wrapper (Ubuntu 24.04)
 #
 # Runs the official installer: INSTALL/INSTALL.ubuntu2404.sh
-# with interactive preflight (DNS, firewall, TLS, secrets) similar to
-# a typical production deploy script.
+# with interactive preflight (DNS, firewall, TLS, secrets)
 #
 # What this deploys (via the official script):
 #   - Apache + PHP 8.3, MariaDB, Redis, Supervisor workers
@@ -40,7 +39,20 @@ MODULES_INSTALLED=false
 # ---------------------------------------------------------------------------
 generate_alnum_secret() {
     local length="${1:-32}"
-    tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$length"
+    local secret=""
+    # `head -c` closes the pipe while `tr` is still writing; with `set -o pipefail`
+    # that makes `tr` exit 141 (SIGPIPE) and aborts the whole script on empty prompts.
+    set +o pipefail
+    secret="$(tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c "$length")"
+    set -o pipefail
+    if [[ ${#secret} -ne "$length" ]]; then
+        secret="$(openssl rand -hex "$(( (length + 1) / 2 ))" | head -c "$length")"
+    fi
+    if [[ ${#secret} -ne "$length" ]]; then
+        echo "ERROR: failed to generate random secret." >&2
+        return 1
+    fi
+    printf '%s' "$secret"
 }
 
 check_ubuntu_2404() {
