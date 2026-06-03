@@ -296,8 +296,8 @@ print_import_credentials() {
     echo "    sudo mv /tmp/misp-import /opt/misp-import"
     echo "    sudo chown -R \$(whoami):\$(whoami) /opt/misp-import"
     echo "    set -a && eval \"\$(sudo grep -E '^MISP_' ${env_file})\" && set +a"
-    echo "    /var/www/MISP/venv/bin/python /opt/misp-import/import_misp.py --source ./misp_export.tar.gz --delete-source -v"
-    echo "  Detached: nohup /var/www/MISP/venv/bin/python ... --source ./misp_export.tar.gz -v > ~/misp-import.log 2>&1 &"
+    echo "    /var/www/MISP/venv/bin/python /opt/misp-import/import_misp.py --source ./misp_export.tar --delete-source -v"
+    echo "  Detached: nohup /var/www/MISP/venv/bin/python ... --source ./misp_export.tar -v > ~/misp-import.log 2>&1 &"
     echo "  See /opt/misp-import/README.md (optional: apt install python3.12-venv for local .venv)"
     echo "============================================================"
 }
