@@ -292,10 +292,13 @@ print_import_credentials() {
     echo "  Saved to: ${env_file}"
     echo "    source ${env_file}"
     echo
-    echo "  Detached import example:"
-    echo "    set -a && source ${env_file} && set +a"
-    echo "    nohup python3 /path/to/import_misp.py --source ./misp_export \\"
-    echo "      > /var/log/misp-import.log 2>&1 &"
+    echo "  Copy misp-import to this host, then:"
+    echo "    sudo mv /tmp/misp-import /opt/misp-import"
+    echo "    sudo chown -R \$(whoami):\$(whoami) /opt/misp-import"
+    echo "    set -a && eval \"\$(sudo grep -E '^MISP_' ${env_file})\" && set +a"
+    echo "    /var/www/MISP/venv/bin/python /opt/misp-import/import_misp.py --source ./misp_export.tar.gz -v"
+    echo "  Detached: nohup /var/www/MISP/venv/bin/python ... --source ./misp_export.tar.gz -v > ~/misp-import.log 2>&1 &"
+    echo "  See /opt/misp-import/README.md (optional: apt install python3.12-venv for local .venv)"
     echo "============================================================"
 }
 
