@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# MISP 2.5 bare-metal deployment wrapper (Ubuntu 24.04)
+# MISP 2.5 bare-metal deployment wrapper (Ubuntu 22.04)
 #
-# Runs the official installer: INSTALL/INSTALL.ubuntu2404.sh
+# Runs the official installer: INSTALL/INSTALL.ubuntu2204.sh
 # with interactive preflight (DNS, firewall, TLS, secrets)
 #
 # What this deploys (via the official script):
-#   - Apache + PHP 8.3, MariaDB, Redis, Supervisor workers
+#   - Apache + PHP 8.2, MariaDB, Redis, Supervisor workers
 #   - MISP core at /var/www/MISP (default)
 #   - Self-signed TLS, or Let's Encrypt if requested before install
 #
@@ -14,13 +14,12 @@
 #   - MISP-modules systemd service on 127.0.0.1:6666 (prompt at deploy time)
 #
 # Requirements:
-#   - Fresh Ubuntu 24.04 LTS, run as root
+#   - Fresh Ubuntu 22.04 LTS, run as root
 #   - Outbound internet (apt, git clone in official installer)
 #
 # Usage:
-#   sudo bash script/deploy-server.sh
-#   Ubuntu 22.04: sudo bash script/deploy-server-2204.sh
-#   sudo MISP_INSTALL_SCRIPT=/path/to/INSTALL.ubuntu2404.sh bash script/deploy-server.sh
+#   sudo bash script/deploy-server-2204.sh
+#   sudo MISP_INSTALL_SCRIPT=/path/to/INSTALL.ubuntu2204.sh bash script/deploy-server-2204.sh
 #
 
 set -euo pipefail
@@ -28,7 +27,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MISP_REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 MISP_PATH="${MISP_PATH:-/var/www/MISP}"
-MISP_INSTALL_SCRIPT="${MISP_INSTALL_SCRIPT:-${MISP_REPO_DIR}/INSTALL/INSTALL.ubuntu2404.sh}"
+MISP_INSTALL_SCRIPT="${MISP_INSTALL_SCRIPT:-${MISP_REPO_DIR}/INSTALL/INSTALL.ubuntu2204.sh}"
 LE_SSL_DIR="/etc/ssl/misp-letsencrypt"
 MISP_MODULES_SRC="${MISP_MODULES_SRC:-/usr/local/src/misp-modules}"
 APACHE_USER="${APACHE_USER:-www-data}"
@@ -56,12 +55,12 @@ generate_alnum_secret() {
     printf '%s' "$secret"
 }
 
-check_ubuntu_2404() {
+check_ubuntu_2204() {
     local version_id
     version_id="$(. /etc/os-release && echo "${VERSION_ID:-}")"
-    if [[ "$version_id" != "24.04" ]]; then
-        echo "ERROR: This deployment targets Ubuntu 24.04 LTS (found: ${version_id:-unknown})." >&2
-        echo "       Upgrade the OS or use INSTALL/INSTALL.* for your distribution." >&2
+    if [[ "$version_id" != "22.04" ]]; then
+        echo "ERROR: This deployment targets Ubuntu 22.04 LTS (found: ${version_id:-unknown})." >&2
+        echo "       Use script/deploy-server.sh on 24.04 or INSTALL/INSTALL.* for your OS." >&2
         exit 1
     fi
 }
@@ -299,7 +298,7 @@ print_import_credentials() {
     echo "    set -a && eval \"\$(sudo grep -E '^MISP_' ${env_file})\" && set +a"
     echo "    /var/www/MISP/venv/bin/python /opt/misp-import/import_misp.py --source ./misp_export.tar --delete-source -v"
     echo "  Detached: nohup /var/www/MISP/venv/bin/python ... --source ./misp_export.tar -v > ~/misp-import.log 2>&1 &"
-    echo "  See /opt/misp-import/README.md (optional: apt install python3.12-venv for local .venv)"
+    echo "  See /opt/misp-import/README.md (optional: apt install python3.10-venv for local .venv)"
     echo "============================================================"
 }
 
@@ -314,7 +313,7 @@ write_client_checklist() {
 # MISP client server — deployment checklist
 # Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-## Installed by official INSTALL.ubuntu2404.sh
+## Installed by official INSTALL.ubuntu2204.sh
 - [x] MISP 2.5 core (${MISP_PATH})
 - [x] Apache HTTPS vhost (ServerName: ${MISP_DOMAIN})
 - [x] MariaDB database: misp
@@ -357,11 +356,11 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-check_ubuntu_2404
+check_ubuntu_2204
 
 if [[ ! -f "$MISP_INSTALL_SCRIPT" ]]; then
     echo "ERROR: Official installer not found: ${MISP_INSTALL_SCRIPT}" >&2
-    echo "       Clone MISP/MISP or set MISP_INSTALL_SCRIPT to INSTALL.ubuntu2404.sh" >&2
+    echo "       Clone MISP/MISP or set MISP_INSTALL_SCRIPT to INSTALL.ubuntu2204.sh" >&2
     exit 1
 fi
 
@@ -380,7 +379,7 @@ fi
 # ---------------------------------------------------------------------------
 echo
 echo "============================================================"
-echo " MISP 2.5 Bare-Metal Server Setup (Ubuntu 24.04)"
+echo " MISP 2.5 Bare-Metal Server Setup (Ubuntu 22.04)"
 echo "============================================================"
 echo " Official installer: ${MISP_INSTALL_SCRIPT}"
 echo " MISP install path:  ${MISP_PATH}"

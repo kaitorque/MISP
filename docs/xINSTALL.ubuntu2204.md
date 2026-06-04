@@ -1,6 +1,13 @@
 # INSTALLATION INSTRUCTIONS
 ## for Ubuntu 22.04-server
 
+!!! notice
+    For an automated MISP 2.5 install on Ubuntu 22.04 LTS (interactive preflight, UFW, Let's Encrypt, optional misp-modules), use the repository scripts instead of the snippet steps below:
+    ```bash
+    sudo bash script/deploy-server-2204.sh
+    ```
+    Core install only: `sudo bash INSTALL/INSTALL.ubuntu2204.sh` (PHP 8.2 via ondrej/php PPA). On Ubuntu 24.04 use `script/deploy-server.sh`.
+
 {% include_relative generic/manual-install-notes.md %}
 
 ### -1/ Installer and Manual install instructions
