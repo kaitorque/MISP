@@ -6,7 +6,7 @@
     ```bash
     sudo bash script/deploy-server-2204.sh
     ```
-    Core install only: `sudo bash INSTALL/INSTALL.ubuntu2204.sh` (PHP 8.2 via ondrej/php PPA). On Ubuntu 24.04 use `script/deploy-server.sh`.
+    Install **composer** on the server first (`/usr/local/bin/composer`); the installer does not download it. Example: `scp composer.phar` to `/tmp/composer.phar`, then `sudo install -m 0755 /tmp/composer.phar /usr/local/bin/composer`. Core install: `sudo bash INSTALL/INSTALL.ubuntu2204.sh`. On Ubuntu 24.04 use `script/deploy-server.sh`.
 
 {% include_relative generic/manual-install-notes.md %}
 

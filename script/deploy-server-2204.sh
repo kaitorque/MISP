@@ -15,6 +15,7 @@
 #
 # Requirements:
 #   - Fresh Ubuntu 22.04 LTS, run as root
+#   - composer in PATH (/usr/local/bin/composer) before install (not downloaded by installer)
 #   - Outbound internet (apt, git clone in official installer)
 #
 # Usage:
@@ -602,6 +603,19 @@ export GPG_PASSPHRASE
 export DBPASSWORD_MISP
 export DBPASSWORD_ADMIN
 export OPENSSL_CN="${MISP_DOMAIN}"
+
+if ! command -v composer >/dev/null 2>&1; then
+    if [[ -f /tmp/composer.phar ]]; then
+        echo "==> Installing composer from /tmp/composer.phar..."
+        install -m 0755 /tmp/composer.phar /usr/local/bin/composer
+    else
+        echo "ERROR: composer is not installed. Before deploy, run on this server:" >&2
+        echo "  sudo install -m 0755 /tmp/composer.phar /usr/local/bin/composer" >&2
+        echo "  (copy composer.phar via scp to /tmp/composer.phar first)" >&2
+        exit 1
+    fi
+fi
+echo "  -> Using composer: $(command -v composer)"
 
 bash "$MISP_INSTALL_SCRIPT"
 
