@@ -205,12 +205,28 @@ print_status "Installing composer..."
 mkdir -p /var/www/.cache/
 chown -R "${APACHE_USER}:${APACHE_USER}" /var/www/.cache/
 
-curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>>$logfile
-COMPOSER_HASH=$(curl -sS https://composer.github.io/installer.sig)
-php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '${COMPOSER_HASH}') { exit(0); } unlink('/tmp/composer-setup.php'); exit(1);" &>>$logfile
-error_check "Composer installer verification"
-php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer &>>$logfile
-error_check "Composer installation"
+if command -v composer >/dev/null 2>&1 && composer --version >/dev/null 2>&1; then
+    print_ok "Composer already installed ($(command -v composer))"
+elif [[ -n "${COMPOSER_PHAR:-}" && -f "${COMPOSER_PHAR}" ]]; then
+    print_status "Using COMPOSER_PHAR=${COMPOSER_PHAR}"
+    install -m 0755 "${COMPOSER_PHAR}" /usr/local/bin/composer &>>$logfile
+    error_check "Composer installation from COMPOSER_PHAR"
+elif [[ -f /tmp/composer.phar ]]; then
+    print_status "Using /tmp/composer.phar (e.g. copied via scp)"
+    install -m 0755 /tmp/composer.phar /usr/local/bin/composer &>>$logfile
+    error_check "Composer installation from /tmp/composer.phar"
+else
+    print_status "Downloading composer from getcomposer.org..."
+    if ! curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>>$logfile; then
+        print_error "Could not download composer. Copy composer.phar to /tmp/composer.phar or set COMPOSER_PHAR, then re-run."
+        exit 1
+    fi
+    COMPOSER_HASH=$(curl -sS https://composer.github.io/installer.sig)
+    php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '${COMPOSER_HASH}') { exit(0); } unlink('/tmp/composer-setup.php'); exit(1);" &>>$logfile
+    error_check "Composer installer verification"
+    php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer &>>$logfile
+    error_check "Composer installation"
+fi
 
 print_status "Configuring php and MySQL configs..."
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit; do
